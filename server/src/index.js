@@ -2,14 +2,13 @@ var express = require('express');
 var cors = require('cors');
 var path = require('path');
 var config = require('./config');
-var { initDB, saveDB } = require('./db');
+var { initDB } = require('./db');
 var authRoutes = require('./routes/auth');
 var bookRoutes = require('./routes/books');
 var syncRoutes = require('./routes/sync');
 
 async function main() {
-  var dbPath = path.resolve(__dirname, '..', config.dbPath);
-  await initDB(dbPath);
+  await initDB();
 
   var app = express();
   app.use(cors());
@@ -26,16 +25,6 @@ async function main() {
   // 健康检查
   app.get('/api/health', function(req, res) {
     res.json({ status: 'ok', time: new Date().toISOString() });
-  });
-
-  // 进程退出时保存数据库
-  process.on('SIGINT', function() {
-    saveDB();
-    process.exit(0);
-  });
-  process.on('SIGTERM', function() {
-    saveDB();
-    process.exit(0);
   });
 
   app.listen(config.port, function() {

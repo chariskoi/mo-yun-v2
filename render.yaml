@@ -1,3 +1,8 @@
+databases:
+  - name: mo-yun-db
+    databaseName: moyun
+    user: moyun
+
 services:
   - type: web
     name: mo-yun-server
@@ -7,13 +12,11 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 18
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mo-yun-db
+          property: connectionString
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRES_IN
         value: 30d
-      - key: DB_PATH
-        value: /opt/render/project/src/server/data/moyun.db
-    disk:
-      name: data
-      mountPath: /opt/render/project/src/server/data
-      sizeGB: 1

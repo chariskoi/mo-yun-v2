@@ -1,0 +1,42 @@
+{
+  "name": "mo-yun",
+  "version": "2.0.0",
+  "description": "墨韵 - 沉浸式写作工坊",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.moyun.writer",
+    "productName": "墨韵",
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "core/**/*",
+      "services/**/*",
+      "views/**/*",
+      "utils/**/*",
+      "styles/**/*",
+      "assets/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": null
+    },
+    "portable": {
+      "artifactName": "墨韵-v2-${version}-portable.exe"
+    }
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.0.0"
+  }
+}

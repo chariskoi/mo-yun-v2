@@ -1,0 +1,148 @@
+══════════════════════════════════════════
+  墨韵 · 沉浸式写作工坊  v2
+══════════════════════════════════════════
+
+【功能说明】
+
+  ● 创作管理
+    - 多作品管理（书架系统）
+    - 卷/章节树结构，支持拖拽排序
+    - 章节内容自动保存（可设置间隔）
+
+  ● 编辑器
+    - 富文本编辑（加粗/斜体/下划线/对齐/颜色）
+    - 段落缩进自动处理（Enter 自动缩进）
+    - 字数统计
+    - 全屏写作模式（F11）
+    - 查找/替换（当前章节或全部章节）
+
+  ● 世界观构建
+    - 人物、地点、设定、时间线、大纲卡片
+    - 卡片支持自定义字段 + 图片
+    - 架构画布：节点连线图，直观展示关系
+    - 自动逻辑连线：基于关系标签推断角色间联系
+    - 大纲表格：类似 Excel 的表格编辑
+
+  ● AI 辅助（需自备 API Key）
+    - 续写、润色、扩写、缩写
+    - 支持导入卡片作为上下文
+    - 自定义指令
+    - 兼容 OpenAI / DeepSeek 等 API
+
+  ● 主题
+    - 浅色 / 深色 / 护眼 三种主题
+    - 自定义背景图片
+
+  ● 云同步（v2 新增）
+    - 注册/登录账号
+    - 数据自动同步到云端
+    - 多设备数据一致
+    - 支持离线写作，联网后自动同步
+
+
+【文件说明】
+
+  ── 核心层 ──
+    core/AppState.js       状态中心
+    core/EventBus.js       事件总线
+    core/CommandSystem.js  命令系统（撤销/重做）
+    core/Commands.js       内建命令
+    core/StorageManager.js 存储管理层
+    core/Logger.js         日志系统
+    core/state.js          全局变量
+    core/UndoManager.js    编辑器撤销管理
+    core/AppManager.js     应用启动器
+
+  ── 服务层 ──
+    services/BookService.js     书籍管理
+    services/ChapterService.js  章节管理
+    services/WorldService.js    世界观操作
+    services/CanvasService.js   画布操作
+    services/AIService.js       AI 接口
+    services/TableService.js    大纲表格
+    services/AuthService.js     认证服务（v2 新增）
+    services/SyncService.js     云端同步（v2 新增）
+    services/ThemeService.js    主题管理
+
+  ── 视图层 ──
+    views/ShelfView.js    书架渲染
+    views/EditorView.js   编辑器视图
+    views/ChapterView.js  章节树视图
+    views/WorldView.js    世界观面板
+    views/CanvasView.js   画布覆盖层
+    views/UIView.js       通用 UI（模态框等）
+    views/AuthView.js     认证界面（v2 新增）
+
+  ── 服务端（v2 新增）──
+    server/               云同步后端
+    server/src/index.js   服务端启动文件
+    server/src/routes/    认证/书籍/同步 API
+    server/src/db.js      数据库（SQLite）
+
+  ── 其他 ──
+    utils/helpers.js      工具函数
+    styles/               CSS 样式
+    index.html            应用入口
+    main.js / preload.js  Electron 主进程
+
+
+【使用方式】
+
+  ● 纯网页版
+    直接用浏览器打开 index.html 即可使用
+    （所有数据存储在浏览器中）
+
+  ● 云同步版（v2 推荐）
+    1. 启动服务端：
+       cd server
+       npm install
+       npm start
+       服务运行在 http://localhost:3001
+
+    2. 打开 index.html
+    3. 在弹出的登录框中注册账号
+    4. 开始创作，数据自动同步到云端
+
+  ● Electron 桌面版
+    直接运行 墨韵.exe 即可
+    如需云同步，需先启动 server（同上）
+
+  ● 自托管服务器
+    如果部署到公网服务器：
+    1. 将 server/ 目录上传到服务器
+    2. npm install && npm start
+    3. 如有需要修改 server/.env 中的配置
+    4. 在应用登录界面点击 ⚙ 修改 API 地址
+
+
+【云同步说明】
+
+  ● 注册/登录
+    首次使用：填写邮箱+密码注册，本地数据自动上传
+    再次使用：登录后自动拉取云端数据
+
+  ● 同步策略
+    - 登录时：云端数据覆盖本地（云端为主导）
+    - 编辑时：自动保存后 2 秒推送到云端
+    - 离线时：数据保存在本地，联网后自动重试
+
+  ● 离线使用
+    登录页面点击「跳过 > 离线使用」即可不依赖服务端
+    所有数据仅存储在浏览器本地，功能完全正常
+
+
+【快捷键】
+
+  Ctrl+S          保存
+  Ctrl+Z          撤销
+  Ctrl+Y          重做
+  Ctrl+Shift+Z    重做
+  F11             全屏
+  F12             开发者工具
+
+
+【系统要求】
+
+  - 网页版：现代浏览器（Chrome / Edge / Firefox）
+  - Electron 版：Windows 7+
+  - 服务端：Node.js 18+

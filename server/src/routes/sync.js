@@ -1,98 +1,104 @@
 var express = require('express');
-var { queryOne, queryAll, execSQL, transaction, saveDB } = require('../db');
+var { queryOne, queryAll, execSQL, transaction } = require('../db');
 var authMiddleware = require('../middleware/auth');
 
 var router = express.Router();
 router.use(authMiddleware);
 
 // GET /api/sync/data — 下载用户所有书籍+数据
-router.get('/data', function(req, res) {
-  var books = queryAll(
-    'SELECT id, title, cover_color, cover, created_at, updated_at FROM books WHERE user_id = ? ORDER BY created_at',
-    [req.userId]);
+router.get('/data', async function(req, res) {
+  try {
+    var books = await queryAll(
+      'SELECT id, title, cover_color, cover, created_at, updated_at FROM books WHERE user_id = $1 ORDER BY created_at',
+      [req.userId]);
 
-  var allRows = queryAll('SELECT book_id, data_key, data_value FROM book_data WHERE user_id = ?', [req.userId]);
+    var allRows = await queryAll('SELECT book_id, data_key, data_value FROM book_data WHERE user_id = $1', [req.userId]);
 
-  // 按 book_id 分组
-  var bookData = {};
-  allRows.forEach(function(row) {
-    if (!bookData[row.book_id]) bookData[row.book_id] = {};
-    bookData[row.book_id][row.data_key] = row.data_value;
-  });
-
-  // 重组为前端格式
-  var result = {};
-  books.forEach(function(b) {
-    var bd = bookData[b.id] || {};
-    var data = {};
-
-    try { data.volumes  = JSON.parse(bd.volumes || '[]'); } catch(e) { data.volumes = []; }
-    try { data.chapters = JSON.parse(bd.chapters || '[]'); } catch(e) { data.chapters = []; }
-    data.active = bd.active || null;
-
-    data.world = {};
-    ['chars', 'locs', 'sets', 'tl', 'outline', 'canvas'].forEach(function(k) {
-      try { data.world[k] = JSON.parse(bd['world_' + k] || '[]'); } catch(e) { data.world[k] = []; }
+    // 按 book_id 分组
+    var bookData = {};
+    allRows.forEach(function(row) {
+      if (!bookData[row.book_id]) bookData[row.book_id] = {};
+      bookData[row.book_id][row.data_key] = row.data_value;
     });
 
-    data.contents = {};
-    Object.keys(bd).forEach(function(k) {
-      if (k.startsWith('content_')) data.contents[k.slice(8)] = bd[k];
+    // 重组为前端格式
+    var result = {};
+    books.forEach(function(b) {
+      var bd = bookData[b.id] || {};
+      var data = {};
+
+      try { data.volumes  = JSON.parse(bd.volumes || '[]'); } catch(e) { data.volumes = []; }
+      try { data.chapters = JSON.parse(bd.chapters || '[]'); } catch(e) { data.chapters = []; }
+      data.active = bd.active || null;
+
+      data.world = {};
+      ['chars', 'locs', 'sets', 'tl', 'outline', 'canvas'].forEach(function(k) {
+        try { data.world[k] = JSON.parse(bd['world_' + k] || '[]'); } catch(e) { data.world[k] = []; }
+      });
+
+      data.contents = {};
+      Object.keys(bd).forEach(function(k) {
+        if (k.startsWith('content_')) data.contents[k.slice(8)] = bd[k];
+      });
+
+      result[b.id] = data;
     });
 
-    result[b.id] = data;
-  });
-
-  res.json({ books, bookData: result });
+    res.json({ books, bookData: result });
+  } catch (e) {
+    res.status(500).json({ error: '服务器错误' });
+  }
 });
 
 // POST /api/sync/data — 上传某本书的全部数据
-router.post('/data', function(req, res) {
-  var bookId = req.body.bookId;
-  var data = req.body.data || {};
-  if (!bookId) return res.status(400).json({ error: '缺少 bookId' });
+router.post('/data', async function(req, res) {
+  try {
+    var bookId = req.body.bookId;
+    var data = req.body.data || {};
+    if (!bookId) return res.status(400).json({ error: '缺少 bookId' });
 
-  var book = queryOne('SELECT id FROM books WHERE id = ? AND user_id = ?', [bookId, req.userId]);
-  if (!book) return res.status(404).json({ error: '书籍不存在' });
+    var book = await queryOne('SELECT id FROM books WHERE id = $1 AND user_id = $2', [bookId, req.userId]);
+    if (!book) return res.status(404).json({ error: '书籍不存在' });
 
-  transaction(function() {
-    // 标准字段
-    if (data.volumes !== undefined)
-      execSQL('INSERT INTO book_data (book_id, user_id, data_key, data_value, updated_at) VALUES (?, ?, ?, ?, datetime(\'now\')) ON CONFLICT(book_id, data_key) DO UPDATE SET data_value = excluded.data_value, updated_at = datetime(\'now\')',
-        [bookId, req.userId, 'volumes', JSON.stringify(data.volumes)]);
-    if (data.chapters !== undefined)
-      execSQL('INSERT INTO book_data (book_id, user_id, data_key, data_value, updated_at) VALUES (?, ?, ?, ?, datetime(\'now\')) ON CONFLICT(book_id, data_key) DO UPDATE SET data_value = excluded.data_value, updated_at = datetime(\'now\')',
-        [bookId, req.userId, 'chapters', JSON.stringify(data.chapters)]);
-    if (data.active !== undefined)
-      execSQL('INSERT INTO book_data (book_id, user_id, data_key, data_value, updated_at) VALUES (?, ?, ?, ?, datetime(\'now\')) ON CONFLICT(book_id, data_key) DO UPDATE SET data_value = excluded.data_value, updated_at = datetime(\'now\')',
-        [bookId, req.userId, 'active', data.active]);
+    await transaction(async function(client) {
+      var upsert = function(key, value) {
+        return client.query(
+          'INSERT INTO book_data (book_id, user_id, data_key, data_value, updated_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP) ON CONFLICT(book_id, data_key) DO UPDATE SET data_value = $4, updated_at = CURRENT_TIMESTAMP',
+          [bookId, req.userId, key, value]
+        );
+      };
 
-    // world 子对象
-    if (data.world && typeof data.world === 'object') {
-      Object.keys(data.world).forEach(function(k) {
-        execSQL('INSERT INTO book_data (book_id, user_id, data_key, data_value, updated_at) VALUES (?, ?, ?, ?, datetime(\'now\')) ON CONFLICT(book_id, data_key) DO UPDATE SET data_value = excluded.data_value, updated_at = datetime(\'now\')',
-          [bookId, req.userId, 'world_' + k, JSON.stringify(data.world[k])]);
-      });
-    }
+      if (data.volumes !== undefined) await upsert('volumes', JSON.stringify(data.volumes));
+      if (data.chapters !== undefined) await upsert('chapters', JSON.stringify(data.chapters));
+      if (data.active !== undefined) await upsert('active', data.active);
 
-    // contents
-    if (data.contents && typeof data.contents === 'object') {
-      Object.keys(data.contents).forEach(function(chId) {
-        execSQL('INSERT INTO book_data (book_id, user_id, data_key, data_value, updated_at) VALUES (?, ?, ?, ?, datetime(\'now\')) ON CONFLICT(book_id, data_key) DO UPDATE SET data_value = excluded.data_value, updated_at = datetime(\'now\')',
-          [bookId, req.userId, 'content_' + chId, data.contents[chId]]);
-      });
-    }
-  });
+      if (data.world && typeof data.world === 'object') {
+        for (var k of Object.keys(data.world)) {
+          await upsert('world_' + k, JSON.stringify(data.world[k]));
+        }
+      }
 
-  saveDB();
-  res.json({ success: true });
+      if (data.contents && typeof data.contents === 'object') {
+        for (var chId of Object.keys(data.contents)) {
+          await upsert('content_' + chId, data.contents[chId]);
+        }
+      }
+    });
+
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: '服务器错误' });
+  }
 });
 
 // DELETE /api/sync/data/:bookId — 删除某本书的所有云端数据
-router.delete('/data/:bookId', function(req, res) {
-  execSQL('DELETE FROM book_data WHERE book_id = ? AND user_id = ?', [req.params.bookId, req.userId]);
-  saveDB();
-  res.json({ success: true });
+router.delete('/data/:bookId', async function(req, res) {
+  try {
+    await execSQL('DELETE FROM book_data WHERE book_id = $1 AND user_id = $2', [req.params.bookId, req.userId]);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: '服务器错误' });
+  }
 });
 
 module.exports = router;
