@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: mo-yun-server
+    env: node
+    buildCommand: cd server && npm install
+    startCommand: cd server && node src/index.js
+    envVars:
+      - key: NODE_VERSION
+        value: 18
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 30d
+      - key: DB_PATH
+        value: /opt/render/project/src/server/data/moyun.db
+    disk:
+      name: data
+      mountPath: /opt/render/project/src/server/data
+      sizeGB: 1

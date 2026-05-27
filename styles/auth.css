@@ -1,0 +1,115 @@
+/* ====== 认证模态框样式 ====== */
+
+.auth-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+.auth-tab {
+  flex: 1;
+  padding: 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text2);
+  border-bottom: 2px solid transparent;
+  font-size: 14px;
+}
+.auth-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.auth-tab:hover {
+  color: var(--text);
+}
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.auth-form input {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--input-bg, transparent);
+  color: var(--text);
+  font-size: 14px;
+  box-sizing: border-box;
+}
+.password-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.password-field input {
+  flex: 1;
+  padding-right: 32px;
+}
+.pw-toggle {
+  position: absolute;
+  right: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  user-select: none;
+  opacity: 0.5;
+  line-height: 1;
+}
+.pw-toggle:hover { opacity: 1; }
+.auth-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+}
+.auth-error {
+  color: var(--accent);
+  font-size: 12px;
+  margin-top: 8px;
+  display: none;
+}
+.auth-loading {
+  text-align: center;
+  padding: 24px;
+  color: var(--text2);
+  font-size: 14px;
+}
+
+/* ====== 用户菜单 ====== */
+#userIndicator {
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+#userIndicator:hover {
+  background: var(--hover);
+}
+.user-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+  padding: 4px 0;
+  min-width: 140px;
+  z-index: 100;
+  display: none;
+}
+.user-menu.show {
+  display: block;
+}
+.user-menu div {
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+}
+.user-menu div:hover {
+  background: var(--hover);
+}

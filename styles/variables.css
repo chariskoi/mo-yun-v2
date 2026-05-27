@@ -1,0 +1,54 @@
+:root {
+    --left-w: 260px;
+    --right-w: 380px;
+    --indent: 2;
+    --base-font-size: 15px;
+    --base-line-height: 1.85;
+    --toolbar-bg: var(--surface)
+}
+
+* { margin:0; padding:0; box-sizing:border-box }
+
+body {
+    font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    transition: background 0.5s ease;
+}
+
+::-webkit-scrollbar { width:8px; height:8px }
+::-webkit-scrollbar-track { background:transparent; border-radius:10px }
+::-webkit-scrollbar-thumb { background:var(--scroll-thumb); border-radius:10px }
+::-webkit-scrollbar-thumb:hover { background:var(--accent) }
+
+body.bg-custom { background-size:cover; background-position:center; background-attachment:fixed }
+body.bg-custom .topbar,
+body.bg-custom .quote-panel,
+body.bg-custom .chapter-sidebar,
+body.bg-custom .editor-panel,
+body.bg-custom .editor-toolbar,
+body.bg-custom .world-panel {
+    background: rgba(255,255,255,0.55);
+    backdrop-filter: blur(20px) saturate(1.3);
+    -webkit-backdrop-filter: blur(20px) saturate(1.3);
+}
+html[data-theme=dark] body.bg-custom .topbar,
+html[data-theme=dark] body.bg-custom .quote-panel,
+html[data-theme=dark] body.bg-custom .chapter-sidebar,
+html[data-theme=dark] body.bg-custom .editor-panel,
+html[data-theme=dark] body.bg-custom .editor-toolbar,
+html[data-theme=dark] body.bg-custom .world-panel {
+    background: rgba(42,42,54,0.58);
+}
+html[data-theme=eye] body.bg-custom .topbar,
+html[data-theme=eye] body.bg-custom .quote-panel,
+html[data-theme=eye] body.bg-custom .chapter-sidebar,
+html[data-theme=eye] body.bg-custom .editor-panel,
+html[data-theme=eye] body.bg-custom .editor-toolbar,
+html[data-theme=eye] body.bg-custom .world-panel {
+    background: rgba(244,247,239,0.60);
+}

@@ -1,0 +1,22 @@
+[data-theme=light] {
+    --bg: #f7f3ef;
+    --surface: #fff;
+    --border: #e2dbd1;
+    --text: #2c2c2c;
+    --text2: #7a6e62;
+    --accent: #bf4b3c;
+    --accent2: #d65c4a;
+    --input-bg: #fcfaf7;
+    --tag-bg: #f1ede8;
+    --hover: #f5f0ea;
+    --resizer: #d9cec2;
+    --scroll-thumb: #c9bcac;
+    --shelf-shadow: 0 8px 32px rgba(0, 0, 0, 0.10);
+    --card-shadow-static: 0 6px 24px rgba(0, 0, 0, 0.07), 0 2px 6px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.03);
+    --card-shadow-hover: 0 22px 56px rgba(0, 0, 0, 0.18), 0 8px 18px rgba(0, 0, 0, 0.10), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    --card-shadow-open: 0 60px 160px rgba(0, 0, 0, 0.45), 0 20px 50px rgba(0, 0, 0, 0.20);
+    --cover-shine: rgba(255, 255, 255, 0.18);
+    --cover-shadow: rgba(0, 0, 0, 0.22);
+    --page-tint: #f6f4ef;
+    --page-edge: #e8e1d6;
+}

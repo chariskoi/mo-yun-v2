@@ -1,0 +1,9 @@
+@media(max-width:780px) {
+    .main { flex-direction: column }
+    .chapter-sidebar { width: 100% !important; max-height: 35vh }
+    .world-panel { width: 100% !important; max-height: 40vh }
+    .resizer { display: none }
+    .shelf-grid { gap: 20px; padding: 20px 16px; justify-content: center; }
+    .book-card { width: 150px; }
+    .book-cover { height: 200px; }
+}

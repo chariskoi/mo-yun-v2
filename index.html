@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>墨韵架构师 · 沉浸式写作工坊</title>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles/variables.css">
+    <link rel="stylesheet" href="styles/theme-light.css">
+    <link rel="stylesheet" href="styles/theme-dark.css">
+    <link rel="stylesheet" href="styles/theme-eye.css">
+    <link rel="stylesheet" href="styles/animations.css">
+    <link rel="stylesheet" href="styles/layout.css">
+    <link rel="stylesheet" href="styles/ui.css">
+    <link rel="stylesheet" href="styles/canvas-overlay.css">
+    <link rel="stylesheet" href="styles/responsive.css">
+    <link rel="stylesheet" href="styles/auth.css">
+</head>
+<body>
+    <!-- ====== Splash Screen ====== -->
+    <div id="splashScreen">
+        <div class="splash-title"><span class="i-c">墨</span><span class="i-h">韵</span></div>
+        <div class="splash-pinyin">mo yun</div>
+        <div class="splash-verse-wrap">
+            <div class="splash-verse">故事开始流淌</div>
+            <div class="splash-dots">…</div>
+        </div>
+    </div>
+
+    <!-- ====== Topbar ====== -->
+    <div class="topbar" id="topbar">
+        <div class="topbar-left">
+            <button class="btn btn-sm" id="backToShelfBtn" onclick="backToShelf()" style="display:none;">‹ 书架</button>
+            <span class="topbar-title" id="topbarTitle">我的书库</span>
+        </div>
+        <div class="topbar-right">
+            <div class="theme-group">
+                <button class="theme-btn active" data-theme="light" onclick="changeTheme('light')">☀️</button>
+                <button class="theme-btn" data-theme="dark" onclick="changeTheme('dark')">🌙</button>
+                <button class="theme-btn" data-theme="eye" onclick="changeTheme('eye')">🌿</button>
+            </div>
+            <button class="btn btn-sm" onclick="importThemeBg()">🖼</button>
+            <input type="file" id="themeBgInput" accept="image/*" onchange="onThemeBgSelected(event)" style="display:none">
+            <button class="btn btn-sm" onclick="importTxtBook()">📄 导入TXT</button>
+            <input type="file" id="txtFileInput" accept=".txt" onchange="onTxtFileSelected(event)" style="display:none">
+            <button class="btn btn-sm" id="aiToggleBtn" onclick="toggleAiFloat()">🤖 AI</button>
+            <span id="userIndicator" style="display:none;" onclick="showUserMenu()"></span>
+            <div class="user-menu" id="userMenu">
+                <div onclick="handleLogout()">🚪 登出</div>
+            </div>
+            <div class="settings-btn" onclick="toggleSettings(event)">
+                <span class="gear-icon">⚙</span>
+                <div class="settings-dropdown" id="settingsDropdown">
+                    <div class="sd-title">排版</div>
+                    <div class="sd-item"><span>缩进</span><input id="indentInput" type="number" min="0" max="8" style="width:50px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;font-size:11px;background:var(--input-bg);color:var(--text);"> 字符</div>
+                    <div class="sd-item"><span>保存间隔</span><input id="saveIntervalInput" type="number" min="1" max="300" style="width:50px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;font-size:11px;background:var(--input-bg);color:var(--text);"> 秒</div>
+                    <div class="sd-item" onclick="manualSave()">💾 保存 <span class="sd-accel">Ctrl+S</span></div>
+                    <div class="sd-divider"></div>
+                    <div class="sd-title">文字</div>
+                    <div class="sd-item" onclick="openReplaceDialog()">🔍 查找/替换 <span class="sd-accel">...</span></div>
+                    <div class="sd-divider"></div>
+                    <div class="sd-title">窗口</div>
+                    <div class="sd-item" onclick="toggleFs()">⛶ 全屏 <span class="sd-accel">F11</span></div>
+                    <div class="sd-item" onclick="ipcMinimize()">─ 最小化</div>
+                    <div class="sd-item" onclick="ipcClose()">✕ 关闭</div>
+                </div>
+            </div>
+            <div class="win-ctl">
+                <span onclick="ipcMinimize()">─</span>
+                <span onclick="toggleFs()">⛶</span>
+                <span onclick="ipcClose()">✕</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== Shelf View ====== -->
+    <div id="shelfView">
+        <div class="ink-title"><span class="i-c">墨</span><span class="i-h">韵</span></div>
+        <div class="shelf-main">
+            <div class="shelf-toolbar"><button class="btn btn-sm" onclick="createBook()">✚ 新作</button><button class="btn btn-sm" onclick="importTxtBook()">📄 导入TXT</button></div>
+            <div class="shelf-grid" id="shelfGrid"></div>
+        </div>
+        <div class="quote-panel">
+            <div class="qp-deco-top"></div>
+            <div class="qp-inner" id="quoteText" onclick="refreshQuote()"></div>
+            <div class="qp-source" id="quoteSource"></div>
+            <div class="qp-deco-bot"></div>
+        </div>
+    </div>
+
+    <!-- ====== Editor View ====== -->
+    <div id="editorView">
+        <div class="main">
+            <!-- Chapter Sidebar -->
+            <div class="chapter-sidebar" id="chapterSidebar">
+                <div class="chapter-sidebar-header">
+                    <span>📖 章节</span>
+                    <div class="btn-group">
+                        <button class="btn btn-sm" onclick="addVolume()">+ 卷</button>
+                    </div>
+                </div>
+                <div class="chapter-list" id="chapterList"></div>
+            </div>
+            <div class="resizer" onmousedown="startResize('left', event)"></div>
+
+            <!-- Editor Panel -->
+            <div class="editor-panel">
+                <div class="editor-toolbar">
+                    <div class="tool-group">
+                        <select class="tool-select" onchange="execCmd('fontName',this.value)"><option value="Georgia">Georgia</option><option value="Microsoft YaHei">雅黑</option><option value="SimSun">宋体</option></select>
+                        <select class="tool-select" onchange="execCmd('fontSize',this.value)"><option value="2">小</option><option value="3" selected>中</option><option value="4">大</option></select>
+                        <input type="color" onchange="execCmd('foreColor',this.value)" value="#2c2c2c" style="width:24px;border:none;cursor:pointer;padding:0;height:24px;vertical-align:middle;">
+                    </div>
+                    <div class="tool-group">
+                        <button class="tool-btn" onclick="execCmd('bold')"><b>B</b></button>
+                        <button class="tool-btn" onclick="execCmd('italic')"><i>I</i></button>
+                        <button class="tool-btn" onclick="execCmd('underline')"><u>U</u></button>
+                    </div>
+                    <div class="tool-group">
+                        <button class="tool-btn" onclick="execCmd('justifyLeft')">左</button>
+                        <button class="tool-btn" onclick="execCmd('justifyCenter')">中</button>
+                        <button class="tool-btn" onclick="execCmd('justifyRight')">右</button>
+                        <button class="tool-btn" onclick="execCmd('justifyFull')">两端</button>
+                    </div>
+                    <div class="tool-group">
+                        <button class="tool-btn" onclick="execCmd('insertUnorderedList')">• 列表</button>
+                        <button class="tool-btn" onclick="execCmd('insertOrderedList')">1. 列表</button>
+                        <button class="tool-btn" onclick="execCmd('insertHTML','<hr>')">— 分割</button>
+                    </div>
+                    <div class="font-ctrl"><button class="tool-btn" id="fontMinus">A⁻</button><span id="fontSizeValue" class="num-badge">15</span><button class="tool-btn" id="fontPlus">A⁺</button></div>
+                    <div class="font-ctrl"><button class="tool-btn" id="lineMinus">↕⁻</button><span id="lineHeightValue" class="num-badge">1.85</span><button class="tool-btn" id="linePlus">↕⁺</button></div>
+                    <button class="btn btn-sm accent" onclick="manualSave()" title="手动保存所有数据">💾 保存</button>
+                    <div class="tool-group">
+                        <button class="btn btn-sm" onclick="openReplaceDialog()">🔍</button>
+                        <button class="btn btn-sm accent" id="aiToggleBtn" onclick="toggleAiFloat()">🤖</button>
+                    </div>
+                    <span id="saveIndicator" style="opacity:0;font-size:10px;color:var(--text2);margin-left:auto;">✓ 已保存</span>
+                </div>
+
+                <div class="chapter-title-fixed">
+                    <h2 id="chapterTitleDisplay" ondblclick="inlineEditChapterTitle()"></h2>
+                </div>
+
+                <div class="editor-scroll-container" style="position:relative;">
+                    <div class="editor-body" id="editorBody" contenteditable="true" oninput="onEditorInput()" onkeydown="handleEnterIndent(event)" onkeyup="updateToolbarState()" onmouseup="updateToolbarState()"></div>
+                </div>
+
+                <div class="editor-footer">
+                    <span id="wordCount">📊 0字</span>
+                    <span id="footerInfo">墨韵 · 指尖流淌</span>
+                </div>
+            </div>
+
+            <!-- Resizer -->
+            <div class="resizer" onmousedown="startResize('right', event)" style="cursor:col-resize;"></div>
+
+            <!-- World Panel -->
+            <div class="world-panel">
+                <div class="world-tabs" id="worldTabs"></div>
+                <div class="world-content" id="tab-characters">
+                    <div class="btn-group"><button class="btn btn-sm" onclick="addCharacter()">✚ 人物</button></div>
+                    <div id="charList"></div>
+                </div>
+                <div class="world-content hidden" id="tab-locations">
+                    <div class="btn-group"><button class="btn btn-sm" onclick="addLocation()">✚ 地点</button></div>
+                    <div id="locList"></div>
+                </div>
+                <div class="world-content hidden" id="tab-settings">
+                    <div class="btn-group"><button class="btn btn-sm" onclick="addSetting()">✚ 设定</button></div>
+                    <div id="setList"></div>
+                </div>
+                <div class="world-content hidden" id="tab-timeline">
+                    <div class="btn-group"><button class="btn btn-sm" onclick="addTimeline()">✚ 事件</button></div>
+                    <div id="tlList"></div>
+                </div>
+                <div class="world-content hidden" id="tab-outline">
+                    <div class="btn-group" style="display:flex;gap:4px;align-items:center;">
+                        <button class="btn btn-sm" onclick="addOutlineItem()">✚ 大纲</button>
+                        <select class="tool-select" id="outlineLevel"><option value="1">卷</option><option value="2" selected>章</option><option value="3">节</option></select>
+                    </div>
+                    <div id="outlineTree"></div>
+                </div>
+                <div class="world-content hidden" id="tab-canvas">
+                    <div class="btn-group"><button class="btn btn-sm" onclick="addCanvas()">✚ 架构图</button></div>
+                    <div id="canvasList"></div>
+                </div>
+            </div>
+
+            <!-- ====== Canvas Overlay ====== -->
+            <div class="canvas-overlay" id="canvasOverlay">
+                <div class="canvas-overlay-header">
+                    <span class="co-name" id="canvasOverlayName">🕸 架构图</span>
+                    <div class="canvas-overlay-toolbar">
+                        <button class="btn btn-sm" onclick="coAddNode()">＋ 导入卡片</button>
+                        <button class="btn btn-sm" id="coLineBtn" onclick="coToggleLine()">✏ 连线</button>
+                        <button class="btn btn-sm" id="coAutoLogicBtn" onclick="coToggleAutoLogic()">🤖 逻辑</button>
+                        <button class="btn btn-sm" onclick="coFitView()">⊞ 适应</button>
+                        <button class="btn btn-sm" onclick="closeCanvasOverlay()">✕ 关闭</button>
+                    </div>
+                </div>
+                <div class="canvas-overlay-stage" id="canvasOverlayStage">
+                    <div class="canvas-overlay-world" id="canvasOverlayWorld"></div>
+                    <div class="co-hint" id="coHint">💡 点击「导入卡片」从世界观中添加节点 · 点击「连线」后依次点两个节点建立关系</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="ai-float" id="aiFloat">
+        <div class="ai-float-header" id="aiFloatHeader">🤖 AI 助手<span style="cursor:pointer;float:right;" onclick="toggleAiFloat()">✕</span></div>
+        <div class="ai-float-inner">
+            <div class="ai-float-sticky" style="display:flex;gap:4px;flex-wrap:wrap;">
+                <input id="aiEndpoint" placeholder="API Endpoint" style="flex:2;min-width:100px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:var(--input-bg);color:var(--text);font-size:10px;">
+                <input id="aiModel" placeholder="Model" style="flex:1;min-width:60px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:var(--input-bg);color:var(--text);font-size:10px;">
+            </div>
+            <div class="ai-float-sticky" style="display:flex;gap:4px;flex-wrap:wrap;">
+                <input id="aiApiKey" type="password" placeholder="API Key" style="flex:3;padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:var(--input-bg);color:var(--text);font-size:10px;">
+                <button class="btn btn-sm" onclick="aiAction('custom')">发送</button>
+            </div>
+            <div class="ai-float-sticky" style="display:flex;gap:4px;flex-wrap:wrap;">
+                <button class="btn btn-sm" onclick="aiAction('continue')">续写</button>
+                <button class="btn btn-sm" onclick="aiAction('polish')">润色</button>
+                <button class="btn btn-sm" onclick="aiAction('expand')">扩写</button>
+                <button class="btn btn-sm" onclick="aiAction('summarize')">缩写</button>
+                <button class="btn btn-sm" onclick="insertAiOutput()">插入</button>
+            </div>
+            <div class="ai-float-scroll">
+                <div class="ai-drop-zone" id="aiDropZone" ondrop="onAiDrop(event)"><span style="font-size:11px;color:var(--text2);">拖拽卡片到此区域</span></div>
+                <textarea id="aiInstruction" placeholder="输入指令..." style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--input-bg);color:var(--text);font-size:11px;min-height:40px;resize:vertical;box-sizing:border-box;"></textarea>
+                <div class="ai-output" id="aiOutput">💡 拖入卡片或输入指令，点击「发送」</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== Context Menu ====== -->
+    <div class="ctx-backdrop" id="ctxBackdrop" onclick="hideCtxMenu()"></div>
+    <div class="ctx-menu" id="ctxMenu"></div>
+
+    <!-- ====== Modals ====== -->
+    <!-- Prompt Modal -->
+    <div class="modal-overlay" id="promptModal">
+        <div class="modal-box"><h3 id="promptTitle">输入</h3><input id="promptInput" onkeydown="if(event.key==='Enter')confirmPrompt()"><div class="modal-actions"><button class="btn" onclick="cancelPrompt()">取消</button><button class="btn accent" onclick="confirmPrompt()">确认</button></div></div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal-box"><span class="modal-icon">⚠️</span><h3 id="confirmTitle">确认</h3><p class="modal-desc" id="confirmMsg"></p><div class="modal-actions"><button class="btn" onclick="cancelConfirm()">取消</button><button class="btn btn-danger" id="confirmOkBtn" onclick="confirmConfirm()">确认</button></div></div>
+    </div>
+
+    <!-- Alert Modal -->
+    <div class="modal-overlay" id="alertModal">
+        <div class="modal-box"><span class="modal-icon">💡</span><h3 id="alertTitle">提示</h3><p class="modal-desc" id="alertMsg"></p><div class="modal-actions"><button class="btn accent" onclick="closeAlert()">知道了</button></div></div>
+    </div>
+
+    <!-- Crop Modal -->
+    <div class="modal-overlay" id="cropModal">
+        <div class="modal-box" style="width:auto;max-width:90vw;padding:20px;"><h3>✂ 裁剪封面</h3>
+            <div id="cropContainer" style="position:relative;margin:12px 0;border-radius:8px;overflow:hidden;background:#000;">
+                <img id="cropImage" style="display:block;max-width:100%;">
+                <div id="cropBox" style="position:absolute;border:2px dashed #fff;cursor:move;background:rgba(255,255,255,0.1);box-shadow:0 0 0 9999px rgba(0,0,0,0.5);"></div>
+            </div>
+            <div class="modal-actions"><button class="btn" onclick="closeCrop()">取消</button><button class="btn accent" onclick="confirmCrop()">确认裁剪</button></div>
+        </div>
+    </div>
+
+    <!-- Replace Modal -->
+    <div class="modal-overlay" id="replaceModal">
+        <div class="modal-box"><h3>🔍 查找/替换</h3>
+            <label style="font-size:11px;color:var(--text2);">查找</label>
+            <input id="replaceFind" placeholder="查找内容">
+            <label style="font-size:11px;color:var(--text2);">替换为</label>
+            <input id="replaceWith" placeholder="替换内容">
+            <label style="font-size:11px;color:var(--text2);">范围</label>
+            <select id="replaceScope"><option value="current">当前章节</option><option value="all">全部章节</option></select>
+            <div class="modal-actions"><button class="btn" onclick="closeReplaceDialog()">取消</button><button class="btn accent" onclick="doReplace()">替换</button></div>
+        </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div class="modal-overlay" id="authModal">
+        <div class="modal-box" style="width:400px;">
+            <div class="auth-tabs">
+                <button class="auth-tab active" data-tab="login" onclick="switchAuthTab('login')">登录</button>
+                <button class="auth-tab" data-tab="register" onclick="switchAuthTab('register')">注册</button>
+            </div>
+            <div id="authLoginForm" class="auth-form">
+                <input id="authEmail" type="email" placeholder="邮箱地址">
+                <div class="password-field"><input id="authPassword" type="password" placeholder="密码"><span class="pw-toggle" onclick="togglePasswordVisibility('authPassword', this)">👁</span></div>
+                <div class="auth-actions">
+                    <button class="btn btn-sm" onclick="showServerConfig()">⚙ 服务器</button>
+                    <button class="btn btn-sm" onclick="skipAuth()">跳过 &gt; 离线使用</button>
+                    <button class="btn accent" onclick="handleAuthLogin()">登录</button>
+                </div>
+            </div>
+            <div id="authRegisterForm" class="auth-form" style="display:none;">
+                <input id="authRegEmail" type="email" placeholder="邮箱地址">
+                <div class="password-field"><input id="authRegPassword" type="password" placeholder="密码（至少6位）"><span class="pw-toggle" onclick="togglePasswordVisibility('authRegPassword', this)">👁</span></div>
+                <input id="authRegNickname" type="text" placeholder="昵称（可选）">
+                <div class="auth-actions">
+                    <button class="btn btn-sm" onclick="showServerConfig()">⚙ 服务器</button>
+                    <button class="btn btn-sm" onclick="switchAuthTab('login')">已有账号？登录</button>
+                    <button class="btn accent" onclick="handleAuthRegister()">注册</button>
+                </div>
+            </div>
+            <div class="auth-error" id="authError"></div>
+            <div class="auth-loading" id="authLoading" style="display:none;">⏳ 请稍候...</div>
+        </div>
+    </div>
+
+    <!-- Server Config Modal -->
+    <div class="modal-overlay" id="serverConfigModal">
+        <div class="modal-box" style="width:380px;">
+            <h3>⚙ 服务器设置</h3>
+            <label style="font-size:12px;color:var(--text2);">API 地址</label>
+            <input id="serverUrlInput" type="text" value="http://localhost:3001" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--input-bg);color:var(--text);font-size:13px;margin:4px 0 12px;">
+            <div class="modal-actions">
+                <button class="btn" onclick="closeServerConfig()">取消</button>
+                <button class="btn accent" onclick="saveServerConfig()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== Hidden Inputs ====== -->
+    <input type="file" id="cardImageInput" accept="image/*" onchange="onCardImageSelected(event)" style="display:none">
+
+    <!-- ====== Scripts (loaded in dependency order) ====== -->
+    <script src="utils/helpers.js"></script>
+    <script src="core/Logger.js"></script>
+    <script src="core/StorageManager.js"></script>
+    <script src="core/EventBus.js"></script>
+    <script src="core/AppState.js"></script>
+    <script src="core/state.js"></script>
+    <script src="core/UndoManager.js"></script>
+    <script src="core/CommandSystem.js"></script>
+    <script src="core/Commands.js"></script>
+
+    <script src="services/ThemeService.js"></script>
+    <script src="services/BookService.js"></script>
+    <script src="services/ChapterService.js"></script>
+    <script src="services/WorldService.js"></script>
+    <script src="services/CanvasService.js"></script>
+    <script src="services/AIService.js"></script>
+    <script src="services/TableService.js"></script>
+    <script src="services/AuthService.js"></script>
+    <script src="services/SyncService.js"></script>
+
+    <script src="views/UIView.js"></script>
+    <script src="views/AuthView.js"></script>
+    <script src="views/ShelfView.js"></script>
+    <script src="views/EditorView.js"></script>
+    <script src="views/ChapterView.js"></script>
+    <script src="views/WorldView.js"></script>
+    <script src="views/CanvasView.js"></script>
+
+    <script src="core/AppManager.js"></script>
+
+    <script>
+        /* ====== 应用入口 ====== */
+        window.addEventListener('beforeunload', autoSaveNow);
+
+        window.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                var s = document.getElementById('splashScreen');
+                if (s) s.classList.add('hide');
+                renderQuote();
+            }, 3000);
+
+            initApp().catch(function(e) { Log.error('App', '初始化失败', e); });
+            wireEvents();
+            wireKeyboard();
+        });
+    </script>
+</body>
+</html>
